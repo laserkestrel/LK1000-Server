@@ -12,23 +12,20 @@ import ioio.lib.util.BaseIOIOLooper;
 import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOService;
 import ioio.lib.api.PwmOutput;
-
 import android.util.Log;
 
 import java.io.*;
 import java.net.ServerSocket;
-
 import java.net.Socket;
 //import java.net.UnknownHostException; 
 //import java.net.SocketTimeoutException;
 
+
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.WifiLock;
 import android.net.wifi.WifiInfo;
-
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 
@@ -45,6 +42,7 @@ import android.content.Context;
 import java.net.URL;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+
 import android.os.Environment;
 
 //adapted from the HelloIOIOService example
@@ -73,8 +71,8 @@ public class LK1000Service extends IOIOService {
 	String direction = "stop";
 	boolean robotEnabled = false;
 	Integer motorThottleValue = 127;
-	Integer phoneTiltValue = 127;
-	Integer phoneTiltValueLast = 127;
+	static int phonePanValue = 127;
+
 
 	@Override
 	protected IOIOLooper createIOIOLooper() {
@@ -96,7 +94,7 @@ public class LK1000Service extends IOIOService {
 				ch2PWM_ = ioio_.openPwmOutput(2, 1000);
 				ch1Dir_ = ioio_.openDigitalOutput(11);
 				ch2Dir_ = ioio_.openDigitalOutput(12);
-				SvoTiltPWM_ = ioio_.openPwmOutput(40, 50);// https://www.servocity.com/html/hs-422_super_sport_.html#.VSxIqfnF-lt
+				SvoTiltPWM_ = ioio_.openPwmOutput(40, 100);// https://www.servocity.com/html/hs-422_super_sport_.html#.VSxIqfnF-lt
 				// My hitec servo quite possibly exceeds the 20mA allowable on the ioio.
 				Log.d(DEBUG_TAG, "IOIO Setup function complete");
 
@@ -145,16 +143,19 @@ public class LK1000Service extends IOIOService {
 				ch2Dir_.write(false);
 			}
 
-			public void tiltPhone(float dc1) throws ConnectionLostException,
-					InterruptedException {
-				Log.d(DEBUG_TAG, "tiltPhone invoked");
-				// SvoTiltPWM_ = ioio_.openPwmOutput(40, 100);
-				SvoTiltPWM_.setDutyCycle(dc1);
-				// SvoTiltPWM_.close(); //AJR I thought maybe closing this would
-				// help stop servo using power..but it breaks everything.
-				Integer phoneTiltValueLast = phoneTiltValue;
-				Thread.sleep(100);
-			}
+			public void panPhone(float dc1) throws ConnectionLostException,
+			InterruptedException {
+		Log.d(DEBUG_TAG, "panPhone invoked with " + dc1);
+
+		//Pulse Width:	500-2400 µs (MiniServo)
+		//Pulse Width:	900-2100 µs (Hitec HS-303)
+		//HITEC dc1 at 1886 seems about max and perfect 90degree right
+		// DC1 comes through from client at at 0, which makes the servo go mental...so add 850 to it as the minimum. 
+		//AJR - Write my own "direction" so that on pressing the button, the servo spins to the required DC1 PWM value. 
+			Log.d(DEBUG_TAG, "panPhone servo set to " + (dc1 + 850));
+			SvoTiltPWM_.setPulseWidth(dc1 + 850);
+			Thread.sleep(500);
+		}
 
 			// Torch stuff
 
@@ -224,15 +225,12 @@ public class LK1000Service extends IOIOService {
 					Thread.sleep(500);
 
 					float dc = (float) (motorThottleValue / 100.0); // duty cycle for PWM motor speed
-					float dc1 = (float) (phoneTiltValue / 220.0); // duty cycle for Phone TiltingPWM motor speed
+					float dc1 = (float) (phonePanValue); // duty cycle for Phone TiltingPWM motor speed
 
 					// if either of the below are false, stop evaluating either condition.
 					// if the user has told us to disable the motors, or if no client is connected, STOP. :-)
 					if (!(robotEnabled && clientConnected)) {
 						allStop();
-						// AJR added log output of values of the two booleans robotEnabled and clientConnected
-						// Log.d(DEBUG_TAG + "", "" + robotEnabled + " " +  "robotEnabled");
-						// Log.d(DEBUG_TAG + "", "" + clientConnected + " " + "clientConnected");
 					} else
 
 					{
@@ -264,13 +262,10 @@ public class LK1000Service extends IOIOService {
 							validDirection = true;
 						}
 
-						// if (phoneTiltValue != phoneTiltValueLast) //AJR This is hammering the CPU.
-						// {
-						// this seems to be true a few times a second when there
-						// are no changes coming through. Investigate.
-						// tiltPhone(dc1);
-						// validDirection = true;
-						// }
+						if (direction.equals("panPhone")) {
+							panPhone(dc1);
+							validDirection = true;
+						}
 
 						// we didn't get a valid direction, all stop.
 						if (!validDirection)
@@ -289,7 +284,7 @@ public class LK1000Service extends IOIOService {
 	public void onDestroy() {
 		// we can't guarantee that this runs on service death
 		Log.d(DEBUG_TAG, "Service thread was ordered to shutdown by OS.");
-
+		// AJR do I need to unregisterReceiver(INSERTSOMETHINGHERE); I get exceptions when i stop the service.
 	}
 
 	@Override
@@ -490,16 +485,14 @@ public class LK1000Service extends IOIOService {
 						robotEnabled = Boolean.valueOf(separated[0]);
 						direction = separated[1];
 						motorThottleValue = Integer.valueOf(separated[2]);
-						phoneTiltValue = Integer.valueOf(separated[3]);
-						// Log.d(DEBUG_TAG, st);
+						phonePanValue = Integer.valueOf(separated[3]);
 						// example st output is "true,stop,47"
 						// example st output is "true,rotateRight,47"
 					} else {
 						// we got a bad command string. All stop.
 						direction = "stop";
 						robotEnabled = false;
-						Log.d(DEBUG_TAG,
-								"WARNING No valid command string from client.");
+						Log.d(DEBUG_TAG, "WARNING No valid command string from client.");
 					}
 
 					// send back sensor values - currently just signal strength
