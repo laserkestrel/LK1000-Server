@@ -83,7 +83,7 @@ public class LK1000Service extends IOIOService {
 			private PwmOutput ch2PWM_;
 			private DigitalOutput ch1Dir_;
 			private DigitalOutput ch2Dir_;
-			private PwmOutput SvoTiltPWM_;
+			private PwmOutput SvoPanPWM_;
 
 			@Override
 			protected void setup() throws ConnectionLostException,
@@ -94,7 +94,7 @@ public class LK1000Service extends IOIOService {
 				ch2PWM_ = ioio_.openPwmOutput(2, 1000);
 				ch1Dir_ = ioio_.openDigitalOutput(11);
 				ch2Dir_ = ioio_.openDigitalOutput(12);
-				SvoTiltPWM_ = ioio_.openPwmOutput(40, 100);// https://www.servocity.com/html/hs-422_super_sport_.html#.VSxIqfnF-lt
+				SvoPanPWM_ = ioio_.openPwmOutput(40, 100);// https://www.servocity.com/html/hs-422_super_sport_.html#.VSxIqfnF-lt
 				// My hitec servo quite possibly exceeds the 20mA allowable on the ioio.
 				Log.d(DEBUG_TAG, "IOIO Setup function complete");
 
@@ -143,7 +143,7 @@ public class LK1000Service extends IOIOService {
 				ch2Dir_.write(false);
 			}
 
-			public void panPhone(float dc1) throws ConnectionLostException,
+			public void panCamera(float dc1) throws ConnectionLostException,
 			InterruptedException {
 		Log.d(DEBUG_TAG, "panPhone invoked with " + dc1);
 
@@ -152,8 +152,8 @@ public class LK1000Service extends IOIOService {
 		//HITEC dc1 at 1886 seems about max and perfect 90degree right
 		// DC1 comes through from client at at 0, which makes the servo go mental...so add 850 to it as the minimum. 
 		//AJR - Write my own "direction" so that on pressing the button, the servo spins to the required DC1 PWM value. 
-			Log.d(DEBUG_TAG, "panPhone servo set to " + (dc1 + 850));
-			SvoTiltPWM_.setPulseWidth(dc1 + 850);
+			Log.d(DEBUG_TAG, "panCamera servo set to " + (dc1 + 850));
+			SvoPanPWM_.setPulseWidth(dc1 + 850);
 			Thread.sleep(500);
 		}
 
@@ -225,7 +225,7 @@ public class LK1000Service extends IOIOService {
 					Thread.sleep(500);
 
 					float dc = (float) (motorThottleValue / 100.0); // duty cycle for PWM motor speed
-					float dc1 = (float) (phonePanValue); // duty cycle for Phone TiltingPWM motor speed
+					float dc1 = (float) (phonePanValue); // duty cycle for Phone PaningPWM motor speed
 
 					// if either of the below are false, stop evaluating either condition.
 					// if the user has told us to disable the motors, or if no client is connected, STOP. :-)
@@ -262,8 +262,8 @@ public class LK1000Service extends IOIOService {
 							validDirection = true;
 						}
 
-						if (direction.equals("panPhone")) {
-							panPhone(dc1);
+						if (direction.equals("panCamera")) {
+							panCamera(dc1);
 							validDirection = true;
 						}
 
@@ -469,7 +469,7 @@ public class LK1000Service extends IOIOService {
 					// enabled or disabled (0,1)
 					// Directions: stop, rotateRight, rotateLeft, forward,
 					// reverse
-					// PhoneTiltValue (0-100)
+					// PhonePanValue (0-100)
 					// Client sends: robotEnabled,direction,motorThottleValue
 					// Server replies: sensor1,sensor2...
 
