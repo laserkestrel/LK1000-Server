@@ -262,7 +262,7 @@ public class LK1000Service extends IOIOService {
 							validDirection = true;
 						}
 
-						if (direction.equals("panCamera")) {
+						if (direction.equals("moveCamera")) {
 							panCamera(dc1);
 							validDirection = true;
 						}
