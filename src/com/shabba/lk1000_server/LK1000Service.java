@@ -72,6 +72,7 @@ public class LK1000Service extends IOIOService {
 	boolean robotEnabled = false;
 	Integer motorThottleValue = 127;
 	static int phonePanValue = 127;
+	static int phoneTiltValue = 127;
 
 
 	@Override
@@ -84,6 +85,7 @@ public class LK1000Service extends IOIOService {
 			private DigitalOutput ch1Dir_;
 			private DigitalOutput ch2Dir_;
 			private PwmOutput SvoPanPWM_;
+			private PwmOutput SvoTiltPWM_;
 
 			@Override
 			protected void setup() throws ConnectionLostException,
@@ -94,8 +96,8 @@ public class LK1000Service extends IOIOService {
 				ch2PWM_ = ioio_.openPwmOutput(2, 1000);
 				ch1Dir_ = ioio_.openDigitalOutput(11);
 				ch2Dir_ = ioio_.openDigitalOutput(12);
-				SvoPanPWM_ = ioio_.openPwmOutput(40, 100);// https://www.servocity.com/html/hs-422_super_sport_.html#.VSxIqfnF-lt
-				// My hitec servo quite possibly exceeds the 20mA allowable on the ioio.
+				SvoPanPWM_ = ioio_.openPwmOutput(40, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
+				SvoTiltPWM_ = ioio_.openPwmOutput(39, 100);
 				Log.d(DEBUG_TAG, "IOIO Setup function complete");
 
 			} // end setup()
@@ -145,7 +147,7 @@ public class LK1000Service extends IOIOService {
 
 			public void panCamera(float dc1) throws ConnectionLostException,
 			InterruptedException {
-		Log.d(DEBUG_TAG, "panPhone invoked with " + dc1);
+			Log.d(DEBUG_TAG, "panCamera invoked with " + dc1);
 
 		//Pulse Width:	500-2400 µs (MiniServo)
 		//Pulse Width:	900-2100 µs (Hitec HS-303)
@@ -154,8 +156,37 @@ public class LK1000Service extends IOIOService {
 		//AJR - Write my own "direction" so that on pressing the button, the servo spins to the required DC1 PWM value. 
 			Log.d(DEBUG_TAG, "panCamera servo set to " + (dc1 + 850));
 			SvoPanPWM_.setPulseWidth(dc1 + 850);
-			Thread.sleep(500);
+			Thread.sleep(50);
 		}
+			
+			
+			public void tiltCamera(float dc2) throws ConnectionLostException,
+			InterruptedException {
+				//Client sending for horizontal <integer name="phoneTiltMax">1531</integer>
+				//with addition of 850 servo minimum thats equal to 2381 to reach horiz
+				//Minimum needs to be at 428 + 850 which is 1278
+				
+				if (dc2 < 1300) 
+				{
+				Log.d(DEBUG_TAG, "tiltCamera has gone below configured minimum of 1300.." + dc2);
+				SvoTiltPWM_.setPulseWidth(1300);
+				}
+				else
+				{
+				Log.d(DEBUG_TAG, "tiltCamera invoked with " + dc2);
+				//Log.d(DEBUG_TAG, "tiltCamera servo set to " + (dc2);
+				SvoTiltPWM_.setPulseWidth(dc2);
+				Thread.sleep(50);
+				}
+		}
+			
+			public void restCamera() throws ConnectionLostException,
+			InterruptedException {
+				Log.d(DEBUG_TAG, "restCamera invoked");
+				SvoPanPWM_.setPulseWidth(1766);
+				SvoTiltPWM_.setPulseWidth(1866);
+				Thread.sleep(50);
+				}			
 
 			// Torch stuff
 
@@ -226,7 +257,7 @@ public class LK1000Service extends IOIOService {
 
 					float dc = (float) (motorThottleValue / 100.0); // duty cycle for PWM motor speed
 					float dc1 = (float) (phonePanValue); // duty cycle for Phone PaningPWM motor speed
-
+					float dc2 = (float) (phoneTiltValue); // duty cycle for Phone TiltingPWM motor speed
 					// if either of the below are false, stop evaluating either condition.
 					// if the user has told us to disable the motors, or if no client is connected, STOP. :-)
 					if (!(robotEnabled && clientConnected)) {
@@ -264,6 +295,7 @@ public class LK1000Service extends IOIOService {
 
 						if (direction.equals("moveCamera")) {
 							panCamera(dc1);
+							tiltCamera(dc2);
 							validDirection = true;
 						}
 
@@ -467,9 +499,10 @@ public class LK1000Service extends IOIOService {
 
 					// protocol:
 					// enabled or disabled (0,1)
-					// Directions: stop, rotateRight, rotateLeft, forward,
-					// reverse
-					// PhonePanValue (0-100)
+					// Directions: stop, rotateRight, rotateLeft, forward, reverse, moveCamera
+					// motorThottleValue (0-100)
+					// PhonePanValue (min and max servo specific)
+					// PhoneTiltValue (min and max servo specific)
 					// Client sends: robotEnabled,direction,motorThottleValue
 					// Server replies: sensor1,sensor2...
 
@@ -479,13 +512,14 @@ public class LK1000Service extends IOIOService {
 
 					// check size to prevent crash if we get a bad string
 
-					if (separated.length == 4) // TODO: make this defined
+					if (separated.length == 5) // TODO: make this defined
 												// elsewhere
 					{
 						robotEnabled = Boolean.valueOf(separated[0]);
 						direction = separated[1];
 						motorThottleValue = Integer.valueOf(separated[2]);
 						phonePanValue = Integer.valueOf(separated[3]);
+						phoneTiltValue = Integer.valueOf(separated[4]);
 						// example st output is "true,stop,47"
 						// example st output is "true,rotateRight,47"
 					} else {
