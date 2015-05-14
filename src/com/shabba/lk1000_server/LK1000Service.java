@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.os.IBinder;
 import ioio.lib.api.DigitalOutput;
 import ioio.lib.api.IOIO;
+import ioio.lib.api.PulseInput;
+import ioio.lib.api.PulseInput.PulseMode;
 import ioio.lib.api.exception.ConnectionLostException;
 import ioio.lib.util.BaseIOIOLooper;
 import ioio.lib.util.IOIOLooper;
@@ -44,6 +46,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 
 import android.os.Environment;
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
+import android.os.Bundle;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 //adapted from the HelloIOIOService example
 
@@ -64,6 +75,7 @@ public class LK1000Service extends IOIOService {
 	WifiManager wifiManager = null;
 	WifiLock lock = null;
 	Integer signalStrength = 0;
+	Integer batteryPercentLevel;
 
 	Socket s = null;
 	ServerSocket ss = null;
@@ -71,33 +83,57 @@ public class LK1000Service extends IOIOService {
 	String direction = "stop";
 	boolean robotEnabled = false;
 	Integer motorThottleValue = 127;
+	/* pan/tilt head */
 	static int phonePanValue = 127;
 	static int phoneTiltValue = 127;
+	/* ultrasonic sensor */
+	//private TextView textViewUSDist_;
+	private int echoSeconds;
+	private int echoDistanceCm;
 
 
 	@Override
 	protected IOIOLooper createIOIOLooper() {
 		return new BaseIOIOLooper() {
 			private DigitalOutput led_;
-
+			/* ROVER5 chassis */
 			private PwmOutput ch1PWM_;
 			private PwmOutput ch2PWM_;
 			private DigitalOutput ch1Dir_;
 			private DigitalOutput ch2Dir_;
+			/* pan/tilt head */
 			private PwmOutput SvoPanPWM_;
 			private PwmOutput SvoTiltPWM_;
+			/* 2 channel relay module */
+			private DigitalOutput Relay1_;
+			private DigitalOutput Relay2_;
+			/* ultrasonic sensor */
+			private DigitalOutput triggerPin_;
+			private PulseInput echoPin_;
+
 
 			@Override
 			protected void setup() throws ConnectionLostException,
 					InterruptedException {
 				Log.d(DEBUG_TAG, "IOIO Setup function starting");
 				led_ = ioio_.openDigitalOutput(IOIO.LED_PIN);
+				/* Dagu Rover 5 Motor 4 channel motor driver */
 				ch1PWM_ = ioio_.openPwmOutput(1, 1000);
 				ch2PWM_ = ioio_.openPwmOutput(2, 1000);
 				ch1Dir_ = ioio_.openDigitalOutput(11);
 				ch2Dir_ = ioio_.openDigitalOutput(12);
-				SvoPanPWM_ = ioio_.openPwmOutput(40, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
-				SvoTiltPWM_ = ioio_.openPwmOutput(39, 100);
+				/* Lynxmotion Pan/Tilt mechanism */
+				SvoPanPWM_ = ioio_.openPwmOutput(14, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
+				SvoTiltPWM_ = ioio_.openPwmOutput(13, 100);
+				/* 2 channel relay module */
+				Relay1_ = ioio_.openDigitalOutput(5, true);
+				//Relay2_ = ioio_.openDigitalOutput(TBA, true);
+				
+				/* ultrasonic sensor */
+				echoPin_ = ioio_.openPulseInput(6, PulseMode.POSITIVE);
+				triggerPin_ = ioio_.openDigitalOutput(7);
+				
+				
 				Log.d(DEBUG_TAG, "IOIO Setup function complete");
 
 			} // end setup()
@@ -149,8 +185,8 @@ public class LK1000Service extends IOIOService {
 			InterruptedException {
 			Log.d(DEBUG_TAG, "panCamera invoked with " + dc1);
 
-		//Pulse Width:	500-2400 µs (MiniServo)
-		//Pulse Width:	900-2100 µs (Hitec HS-303)
+		//Pulse Width:	500-2400  (MiniServo)
+		//Pulse Width:	900-2100  (Hitec HS-303)
 		//HITEC dc1 at 1886 seems about max and perfect 90degree right
 		// DC1 comes through from client at at 0, which makes the servo go mental...so add 850 to it as the minimum. 
 		//AJR - Write my own "direction" so that on pressing the button, the servo spins to the required DC1 PWM value. 
@@ -258,6 +294,23 @@ public class LK1000Service extends IOIOService {
 					float dc = (float) (motorThottleValue / 100.0); // duty cycle for PWM motor speed
 					float dc1 = (float) (phonePanValue); // duty cycle for Phone PaningPWM motor speed
 					float dc2 = (float) (phoneTiltValue); // duty cycle for Phone TiltingPWM motor speed
+					
+					//Log.d(DEBUG_TAG, "Battery Percent level is at" + batterypercentlevel);
+					
+					///robot freaks HC-404 sensor code needs adding here. 
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
 					// if either of the below are false, stop evaluating either condition.
 					// if the user has told us to disable the motors, or if no client is connected, STOP. :-)
 					if (!(robotEnabled && clientConnected)) {
@@ -329,6 +382,7 @@ public class LK1000Service extends IOIOService {
 		// lock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL,"LockTag");
 		Log.d(DEBUG_TAG, "AJR: onStart invoked");
 		NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		this.registerReceiver(this.batteryInfoReceiver,	new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 
 		if (intent != null && intent.getAction() != null
 				&& intent.getAction().equals("stop")) {
@@ -387,6 +441,15 @@ public class LK1000Service extends IOIOService {
 		}
 		return START_STICKY;
 	} // end onStart()
+	
+	   private BroadcastReceiver batteryInfoReceiver = new BroadcastReceiver() 
+	   {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+
+				batteryPercentLevel= intent.getIntExtra(BatteryManager.EXTRA_LEVEL,0);
+			}
+		};
 
 	private void obtainWifiLock() {
 		// Prevent Android from throttling the wifi back to save batteries
@@ -467,7 +530,7 @@ public class LK1000Service extends IOIOService {
 			BufferedReader input = null;
 			PrintWriter output = null;
 			String st = null;
-
+			String outputString = null;
 			s = null;
 			continueLoop = true;
 
@@ -520,8 +583,7 @@ public class LK1000Service extends IOIOService {
 						motorThottleValue = Integer.valueOf(separated[2]);
 						phonePanValue = Integer.valueOf(separated[3]);
 						phoneTiltValue = Integer.valueOf(separated[4]);
-						// example st output is "true,stop,47"
-						// example st output is "true,rotateRight,47"
+						// example st output is "true,rotateRight,47,1000,1125"
 					} else {
 						// we got a bad command string. All stop.
 						direction = "stop";
@@ -531,9 +593,14 @@ public class LK1000Service extends IOIOService {
 
 					// send back sensor values - currently just signal strength
 
-					output.println(signalStrength.toString());
+					//output.println(signalStrength.toString());
+					//output.flush();
+					
+					output.println(outputString);
+					outputString = signalStrength.toString() + "," + batteryPercentLevel.toString();
+					Log.d(DEBUG_TAG, "Server sends: " + outputString.toString());
 					output.flush();
-
+					
 					// check for client polite disconnect
 					if (st.equals("quit"))
 						continueLoop = false;
