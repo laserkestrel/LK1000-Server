@@ -95,6 +95,9 @@ public class LK1000Service extends IOIOService {
 	private final int BATT_VOLT_PIN = 45;
 	private final int BATT_TEMP_PIN = 46;
 	
+	//LOOP FREQUENCIES (MILLISEC)
+	private final int BATT_MONITORING_FREQ = 60000;
+	
 
 	Socket s = null;
 	ServerSocket ss = null;
@@ -516,7 +519,7 @@ public class LK1000Service extends IOIOService {
 				currentInfo.getRssi(), numLevels);
 
 	}
-
+	
 	class CommsThread implements Runnable {
 
 		// This thread sets up the network server and accepts client connections
