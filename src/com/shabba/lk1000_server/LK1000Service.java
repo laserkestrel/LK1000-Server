@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.IBinder;
 import ioio.lib.api.DigitalOutput;
+import ioio.lib.api.DigitalOutput.Spec.Mode;
 import ioio.lib.api.IOIO;
 import ioio.lib.api.PulseInput;
 import ioio.lib.api.PulseInput.PulseMode;
@@ -21,6 +22,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 //import java.net.UnknownHostException; 
 //import java.net.SocketTimeoutException;
+
 
 
 import android.net.wifi.WifiManager;
@@ -76,6 +78,23 @@ public class LK1000Service extends IOIOService {
 	WifiLock lock = null;
 	Integer signalStrength = 0;
 	Integer batteryPercentLevel;
+	
+	// IOIO PINS IN NUMERICAL ORDER
+	private final int HBRIDGE_PORT_PWM = 1;
+	private final int HBRIDGE_STBD_PWM = 2;
+	private final int RELAY_CHANNEL1_PIN = 5;
+	private final int SONIC_ECHO_FORE_PIN = 6;
+	private final int SONIC_TRIG_FORE_PIN = 7;
+	
+	//private final int RELAY_CHANNEL2_PIN = ;
+	private final int HBRIDGE_PORT_DIR_PIN = 11 ;
+	private final int HBRIDGE_STBD_DIR_PIN = 12 ;
+	private final int PHONE_TILT_PIN = 13;
+	private final int PHONE_PAN_PIN = 14;
+	private final int BATT_MONITOR_SWITCH_PIN = 44;
+	private final int BATT_VOLT_PIN = 45;
+	private final int BATT_TEMP_PIN = 46;
+	
 
 	Socket s = null;
 	ServerSocket ss = null;
@@ -107,7 +126,7 @@ public class LK1000Service extends IOIOService {
 			/* 2 channel relay module */
 			private DigitalOutput Relay1_;
 			private DigitalOutput Relay2_;
-			/* ultrasonic sensor */
+			/* ultrasonic sensor (Fore) */
 			private DigitalOutput triggerPin_;
 			private PulseInput echoPin_;
 
@@ -118,20 +137,21 @@ public class LK1000Service extends IOIOService {
 				Log.d(DEBUG_TAG, "IOIO Setup function starting");
 				led_ = ioio_.openDigitalOutput(IOIO.LED_PIN);
 				/* Dagu Rover 5 Motor 4 channel motor driver */
-				ch1PWM_ = ioio_.openPwmOutput(1, 1000);
-				ch2PWM_ = ioio_.openPwmOutput(2, 1000);
-				ch1Dir_ = ioio_.openDigitalOutput(11);
-				ch2Dir_ = ioio_.openDigitalOutput(12);
+				ch1PWM_ = ioio_.openPwmOutput(HBRIDGE_PORT_PWM, 1000);
+				ch2PWM_ = ioio_.openPwmOutput(HBRIDGE_STBD_PWM, 1000);
+				ch1Dir_ = ioio_.openDigitalOutput(HBRIDGE_PORT_DIR_PIN);
+				ch2Dir_ = ioio_.openDigitalOutput(HBRIDGE_STBD_DIR_PIN);
 				/* Lynxmotion Pan/Tilt mechanism */
-				SvoPanPWM_ = ioio_.openPwmOutput(14, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
-				SvoTiltPWM_ = ioio_.openPwmOutput(13, 100);
+				SvoPanPWM_ = ioio_.openPwmOutput(PHONE_PAN_PIN, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
+				//SvoPanPWM_ = ioio_.openPwmOutput(new DigitalOutput.Spec(PHONE_PAN_PIN, Mode.OPEN_DRAIN), 100); // https://www.servocity.com/html/hs-422_super_sport_.html
+				SvoTiltPWM_ = ioio_.openPwmOutput(PHONE_TILT_PIN, 100);
 				/* 2 channel relay module */
-				Relay1_ = ioio_.openDigitalOutput(5, true);
-				//Relay2_ = ioio_.openDigitalOutput(TBA, true);
+				Relay1_ = ioio_.openDigitalOutput(RELAY_CHANNEL1_PIN, true);
+				//Relay2_ = ioio_.openDigitalOutput(RELAY_CHANNEL2_PIN, true);
 				
 				/* ultrasonic sensor */
-				echoPin_ = ioio_.openPulseInput(6, PulseMode.POSITIVE);
-				triggerPin_ = ioio_.openDigitalOutput(7);
+				echoPin_ = ioio_.openPulseInput(SONIC_ECHO_FORE_PIN, PulseMode.POSITIVE);
+				triggerPin_ = ioio_.openDigitalOutput(SONIC_TRIG_FORE_PIN);
 				
 				
 				Log.d(DEBUG_TAG, "IOIO Setup function complete");
@@ -543,8 +563,7 @@ public class LK1000Service extends IOIOService {
 				s.setSoTimeout(1000); // if s times out, it should generate an IO exception that will be caught later
 				Log.d(DEBUG_TAG, "Client connected.");
 
-				input = new BufferedReader(new InputStreamReader(
-						s.getInputStream()));
+				input = new BufferedReader(new InputStreamReader(s.getInputStream()));
 				output = new PrintWriter(s.getOutputStream(), true);
 
 			} catch (Exception e) {
@@ -598,7 +617,7 @@ public class LK1000Service extends IOIOService {
 					
 					output.println(outputString);
 					outputString = signalStrength.toString() + "," + batteryPercentLevel.toString();
-					Log.d(DEBUG_TAG, "Server sends: " + outputString.toString());
+					//Log.d(DEBUG_TAG, "Server sends: " + outputString.toString());
 					output.flush();
 					
 					// check for client polite disconnect
