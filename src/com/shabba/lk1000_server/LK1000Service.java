@@ -563,7 +563,7 @@ public class LK1000Service extends IOIOService {
 				Log.d(DEBUG_TAG, "Listening for client on > " + SERVERPORT);
 
 				s = ss.accept();
-				s.setSoTimeout(1000); // if s times out, it should generate an IO exception that will be caught later
+				s.setSoTimeout(2000); // if s times out, it should generate an IO exception that will be caught later
 				Log.d(DEBUG_TAG, "Client connected.");
 
 				input = new BufferedReader(new InputStreamReader(s.getInputStream()));
