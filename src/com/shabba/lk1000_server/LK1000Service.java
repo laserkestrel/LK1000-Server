@@ -91,7 +91,7 @@ public class LK1000Service extends IOIOService {
 	private final int HBRIDGE_STBD_DIR_PIN = 12 ;
 	private final int PHONE_TILT_PIN = 13;
 	private final int PHONE_PAN_PIN = 14;
-	private final int BATT_MONITOR_SWITCH_PIN = 44;
+	private final int BATT_MONITOR_SWITCH_PIN = 44;//Is this to turn the monitoring system on or off? 
 	private final int BATT_VOLT_PIN = 45;
 	private final int BATT_TEMP_PIN = 46;
 	
@@ -145,9 +145,9 @@ public class LK1000Service extends IOIOService {
 				ch1Dir_ = ioio_.openDigitalOutput(HBRIDGE_PORT_DIR_PIN);
 				ch2Dir_ = ioio_.openDigitalOutput(HBRIDGE_STBD_DIR_PIN);
 				/* Lynxmotion Pan/Tilt mechanism */
-				SvoPanPWM_ = ioio_.openPwmOutput(PHONE_PAN_PIN, 100); // https://www.servocity.com/html/hs-422_super_sport_.html
+				SvoPanPWM_ = ioio_.openPwmOutput(PHONE_PAN_PIN, 50); // https://www.servocity.com/html/hs-422_super_sport_.html
 				//SvoPanPWM_ = ioio_.openPwmOutput(new DigitalOutput.Spec(PHONE_PAN_PIN, Mode.OPEN_DRAIN), 100); // https://www.servocity.com/html/hs-422_super_sport_.html
-				SvoTiltPWM_ = ioio_.openPwmOutput(PHONE_TILT_PIN, 100);
+				SvoTiltPWM_ = ioio_.openPwmOutput(PHONE_TILT_PIN, 50);
 				/* 2 channel relay module */
 				Relay1_ = ioio_.openDigitalOutput(RELAY_CHANNEL1_PIN, true);
 				//Relay2_ = ioio_.openDigitalOutput(RELAY_CHANNEL2_PIN, true);
