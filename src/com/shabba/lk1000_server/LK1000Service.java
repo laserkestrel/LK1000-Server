@@ -54,9 +54,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
-import android.os.Bundle;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 //adapted from the HelloIOIOService example
 
