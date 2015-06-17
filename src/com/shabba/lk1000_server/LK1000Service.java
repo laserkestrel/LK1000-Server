@@ -88,9 +88,9 @@ public class LK1000Service extends IOIOService {
 	private final int HBRIDGE_STBD_DIR_PIN = 12 ;
 	private final int PHONE_TILT_PIN = 13;
 	private final int PHONE_PAN_PIN = 14;
-	private final int BATT_MONITOR_SWITCH_PIN = 44;//Is this to turn the monitoring system on or off? 
-	private final int BATT_VOLT_PIN = 45;
-	private final int BATT_TEMP_PIN = 46;
+	private final int BATT1_MONITOR_SWITCH_PIN = 41;//Is this to turn the monitoring system on or off? 
+	private final int BATT1_VOLT_PIN = 42;
+	private final int BATT1_TEMP_PIN = 43;
 	
 	//LOOP FREQUENCIES (MILLISEC)
 	private final int BATT_MONITORING_FREQ = 60000;
