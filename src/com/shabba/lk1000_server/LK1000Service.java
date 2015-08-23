@@ -77,20 +77,30 @@ public class LK1000Service extends IOIOService {
 	Integer batteryPercentLevel;
 	
 	// IOIO PINS IN NUMERICAL ORDER
-	private final int HBRIDGE_PORT_PWM = 1;
-	private final int HBRIDGE_STBD_PWM = 2;
-	private final int RELAY_CHANNEL1_PIN = 5;
-	private final int SONIC_ECHO_FORE_PIN = 6;
-	private final int SONIC_TRIG_FORE_PIN = 7;
+	private final int HBRIDGE_PORT_DIR_PIN = 1 ;
+	private final int HBRIDGE_PORT_PWM = 2;
+	private final int HBRIDGE_STBD_DIR_PIN = 3 ;
+	private final int HBRIDGE_STBD_PWM = 4;
 	
-	//private final int RELAY_CHANNEL2_PIN = ;
-	private final int HBRIDGE_PORT_DIR_PIN = 11 ;
-	private final int HBRIDGE_STBD_DIR_PIN = 12 ;
-	private final int PHONE_TILT_PIN = 13;
-	private final int PHONE_PAN_PIN = 14;
-	private final int BATT1_MONITOR_SWITCH_PIN = 41;//Is this to turn the monitoring system on or off? 
+	private final int PHONE_TILT_PWM = 10;
+	private final int PHONE_PAN_PWM = 11;
+	private final int SONIC_ECHO_FORE_PIN = 13;
+	private final int SONIC_ECHO_AFT_PIN = 14;
+	
+	private final int SONIC_TRIG_FORE_PIN = 27;
+	private final int SONIC_TRIG_AFT_PIN = 28;
+	
+	private final int HBRIDGE_PORT_CURRENT = 31;
+	private final int HBRIDGE_STBD_CURRENT = 32;
+	private final int ANDROID_CHARGE_PIN = 38;
+	private final int LASER_SWITCH_PIN = 39;
+	private final int BATT1_MONITOR_SWITCH_PIN = 41;
 	private final int BATT1_VOLT_PIN = 42;
 	private final int BATT1_TEMP_PIN = 43;
+	private final int BATT2_MONITOR_SWITCH_PIN = 44;
+	private final int BATT2_VOLT_PIN = 45;
+	private final int BATT2_TEMP_PIN = 46;
+	
 	
 	//LOOP FREQUENCIES (MILLISEC)
 	private final int BATT_MONITORING_FREQ = 60000;
@@ -142,12 +152,10 @@ public class LK1000Service extends IOIOService {
 				ch1Dir_ = ioio_.openDigitalOutput(HBRIDGE_PORT_DIR_PIN);
 				ch2Dir_ = ioio_.openDigitalOutput(HBRIDGE_STBD_DIR_PIN);
 				/* Lynxmotion Pan/Tilt mechanism */
-				SvoPanPWM_ = ioio_.openPwmOutput(PHONE_PAN_PIN, 50); // https://www.servocity.com/html/hs-422_super_sport_.html
-				//SvoPanPWM_ = ioio_.openPwmOutput(new DigitalOutput.Spec(PHONE_PAN_PIN, Mode.OPEN_DRAIN), 100); // https://www.servocity.com/html/hs-422_super_sport_.html
-				SvoTiltPWM_ = ioio_.openPwmOutput(PHONE_TILT_PIN, 50);
-				/* 2 channel relay module */
-				Relay1_ = ioio_.openDigitalOutput(RELAY_CHANNEL1_PIN, true);
-				//Relay2_ = ioio_.openDigitalOutput(RELAY_CHANNEL2_PIN, true);
+				//SvoPanPWM_ = ioio_.openPwmOutput(PHONE_PAN_PWM, 50); // https://www.servocity.com/html/hs-422_super_sport_.html
+				SvoPanPWM_ = ioio_.openPwmOutput(new DigitalOutput.Spec(PHONE_PAN_PWM, Mode.OPEN_DRAIN), 50); // https://www.servocity.com/html/hs-422_super_sport_.html
+				//SvoTiltPWM_ = ioio_.openPwmOutput(PHONE_TILT_PWM, 50);
+				SvoTiltPWM_ = ioio_.openPwmOutput(new DigitalOutput.Spec(PHONE_TILT_PWM, Mode.OPEN_DRAIN), 50);
 				
 				/* ultrasonic sensor */
 				echoPin_ = ioio_.openPulseInput(SONIC_ECHO_FORE_PIN, PulseMode.POSITIVE);
